@@ -232,60 +232,60 @@ function SortableTaskItem({
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <button
-          type="button"
-          onClick={onSelect}
-          className="text-left"
-        >
-          <p
-            className={`font-medium break-words leading-snug ${
-              task.completed ? "line-through text-muted" : "text-foreground"
-            }`}
+        <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={onSelect}
+            className="text-left flex-1"
           >
-            {task.title}
-          </p>
-        </button>
+            <p
+              className={`font-medium break-words leading-snug ${
+                task.completed ? "line-through text-muted" : "text-foreground"
+              }`}
+            >
+              {task.title}
+            </p>
+          </button>
 
-        <div className="flex items-center justify-between">
-          <span className="rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
+          <span className="mt-0.5 shrink-0 rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
             {task.minutes} min
           </span>
+        </div>
 
-          <div className="flex items-center gap-1 -mr-2">
-            {!completed && (
-              <button
-                type="button"
-                onClick={onSelect}
-                className={`mr-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  isActive
-                    ? "bg-accent text-white"
-                    : "bg-accent-muted text-accent opacity-0 group-hover:opacity-100 max-sm:opacity-100"
-                }`}
-              >
-                {isActive ? "Focando" : "Focar"}
-              </button>
-            )}
-
-            {onEditStart && (
-              <button
-                type="button"
-                onClick={onEditStart}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
-                aria-label="Editar tarefa"
-              >
-                <EditIcon />
-              </button>
-            )}
-
+        <div className="flex items-center justify-start gap-2">
+          {!completed && (
             <button
               type="button"
-              onClick={onDelete}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
-              aria-label="Excluir tarefa"
+              onClick={onSelect}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-accent text-white"
+                  : "bg-accent-muted text-accent opacity-0 group-hover:opacity-100 max-sm:opacity-100"
+              }`}
             >
-              <TrashIcon />
+              {isActive ? "Focando" : "Focar"}
             </button>
-          </div>
+          )}
+
+          {onEditStart && (
+            <button
+              type="button"
+              onClick={onEditStart}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
+              aria-label="Editar tarefa"
+            >
+              <EditIcon />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
+            aria-label="Excluir tarefa"
+          >
+            <TrashIcon />
+          </button>
         </div>
       </div>
     </li>
