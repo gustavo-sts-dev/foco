@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { MobileTextInput, MobileStepper } from "./MobileInputs";
 
 type TaskFormProps = {
   onAdd: (title: string, minutes: number) => void;
@@ -31,13 +32,11 @@ export function TaskForm({ onAdd }: TaskFormProps) {
       className="rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)]"
     >
       <div className="flex gap-2">
-        <input
-          type="text"
+        <MobileTextInput
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           onFocus={() => setExpanded(true)}
           placeholder="O que você vai fazer?"
-          className="min-h-11 flex-1 rounded-[var(--radius)] bg-muted-bg px-3 text-foreground placeholder:text-muted"
           maxLength={120}
         />
         <button
@@ -83,14 +82,15 @@ export function TaskForm({ onAdd }: TaskFormProps) {
           </button>
           
           {isCustom && (
-            <input 
-              type="number"
-              value={minutes}
-              onChange={(e) => setMinutes(parseInt(e.target.value) || 1)}
-              className="min-h-9 w-20 rounded-full border-none bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              min="1"
-              autoFocus
-            />
+            <div className="mt-2 w-full">
+              <MobileStepper
+                value={minutes}
+                onChange={setMinutes}
+                min={1}
+                max={240}
+                step={5}
+              />
+            </div>
           )}
         </div>
       )}

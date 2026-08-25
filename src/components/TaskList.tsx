@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Task } from "@/types";
+import { MobileTextInput, MobileStepper } from "./MobileInputs";
 import {
   DndContext,
   closestCenter,
@@ -43,7 +44,7 @@ export function TaskList({
 }: TaskListProps) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editMinutes, setEditMinutes] = useState("");
+  const [editMinutes, setEditMinutes] = useState(25);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -96,7 +97,7 @@ export function TaskList({
                   ? () => {
                       setEditingTask(task);
                       setEditTitle(task.title);
-                      setEditMinutes(task.minutes.toString());
+                      setEditMinutes(task.minutes);
                     }
                   : undefined
               }
@@ -111,23 +112,23 @@ export function TaskList({
             <h3 className="mb-4 text-lg font-semibold">Editar Tarefa</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-muted">Título</label>
-                <input
-                  type="text"
+                <label className="mb-2 block text-sm font-medium text-muted">Título</label>
+                <MobileTextInput
                   value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none"
-                  autoFocus
+                  onChange={setEditTitle}
+                  placeholder="Nome da tarefa"
+                  autoFocus={true}
+                  maxLength={120}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-muted">Duração (minutos)</label>
-                <input
-                  type="number"
+                <label className="mb-2 block text-sm font-medium text-muted">Duração (minutos)</label>
+                <MobileStepper
                   value={editMinutes}
-                  onChange={(e) => setEditMinutes(e.target.value)}
-                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none"
-                  min="1"
+                  onChange={setEditMinutes}
+                  min={1}
+                  max={240}
+                  step={5}
                 />
               </div>
             </div>
@@ -145,7 +146,7 @@ export function TaskList({
                   if (onEdit) {
                     onEdit(editingTask.id, {
                       title: editTitle.trim() || editingTask.title,
-                      minutes: parseInt(editMinutes) || editingTask.minutes,
+                      minutes: editMinutes || editingTask.minutes,
                     });
                   }
                   setEditingTask(null);
