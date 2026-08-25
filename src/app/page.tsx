@@ -83,10 +83,20 @@ export default function Home() {
   }
 
   function handleFocusComplete(minutes: number) {
-    update((prev) => ({
-      ...prev,
-      focusMinutesToday: prev.focusMinutesToday + minutes,
-    }));
+    update((prev) => {
+      let updatedTasks = prev.tasks;
+      if (activeTaskId) {
+        updatedTasks = prev.tasks.map((t) => 
+          t.id === activeTaskId ? { ...t, completed: true } : t
+        );
+      }
+      return {
+        ...prev,
+        focusMinutesToday: prev.focusMinutesToday + minutes,
+        tasks: updatedTasks,
+      };
+    });
+    setActiveTaskId(null);
   }
 
   function handleCloneDay(sourceDate: string, targetDate: string) {
