@@ -202,14 +202,14 @@ function SortableTaskItem({
     <li
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center gap-3 rounded-[var(--radius-lg)] bg-card p-3 shadow-[var(--shadow)] transition-all ${
+      className={`group flex items-start gap-3 rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)] transition-all ${
         isActive ? "ring-2 ring-accent" : ""
       } ${completed ? "opacity-60" : ""} ${isDragging ? "opacity-50 ring-2 ring-accent" : ""}`}
     >
       {!completed && (
         <button
           type="button"
-          className="cursor-grab touch-none p-1 text-muted hover:text-foreground active:cursor-grabbing"
+          className="mt-0.5 cursor-grab touch-none p-1 text-muted hover:text-foreground active:cursor-grabbing"
           aria-label="Reordenar tarefa"
           {...attributes}
           {...listeners}
@@ -221,7 +221,7 @@ function SortableTaskItem({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
           task.completed
             ? "border-success bg-success text-white"
             : "border-border hover:border-accent"
@@ -231,54 +231,63 @@ function SortableTaskItem({
         {task.completed && <CheckIcon />}
       </button>
 
-      <button
-        type="button"
-        onClick={onSelect}
-        className="min-w-0 flex-1 text-left"
-      >
-        <p
-          className={`truncate font-medium ${
-            task.completed ? "line-through text-muted" : ""
-          }`}
-        >
-          {task.title}
-        </p>
-        <p className="mt-0.5 text-xs text-muted">{task.minutes} min</p>
-      </button>
-
-      {!completed && (
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
         <button
           type="button"
           onClick={onSelect}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            isActive
-              ? "bg-accent text-white"
-              : "bg-accent-muted text-accent opacity-0 group-hover:opacity-100 max-sm:opacity-100"
-          }`}
+          className="text-left"
         >
-          {isActive ? "Focando" : "Focar"}
+          <p
+            className={`font-medium break-words leading-snug ${
+              task.completed ? "line-through text-muted" : "text-foreground"
+            }`}
+          >
+            {task.title}
+          </p>
         </button>
-      )}
 
-      {onEditStart && (
-        <button
-          type="button"
-          onClick={onEditStart}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
-          aria-label="Editar tarefa"
-        >
-          <EditIcon />
-        </button>
-      )}
+        <div className="flex items-center justify-between">
+          <span className="rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
+            {task.minutes} min
+          </span>
 
-      <button
-        type="button"
-        onClick={onDelete}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
-        aria-label="Excluir tarefa"
-      >
-        <TrashIcon />
-      </button>
+          <div className="flex items-center gap-1 -mr-2">
+            {!completed && (
+              <button
+                type="button"
+                onClick={onSelect}
+                className={`mr-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? "bg-accent text-white"
+                    : "bg-accent-muted text-accent opacity-0 group-hover:opacity-100 max-sm:opacity-100"
+                }`}
+              >
+                {isActive ? "Focando" : "Focar"}
+              </button>
+            )}
+
+            {onEditStart && (
+              <button
+                type="button"
+                onClick={onEditStart}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
+                aria-label="Editar tarefa"
+              >
+                <EditIcon />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onDelete}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
+              aria-label="Excluir tarefa"
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </div>
+      </div>
     </li>
   );
 }
