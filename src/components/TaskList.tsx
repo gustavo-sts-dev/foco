@@ -41,6 +41,9 @@ export function TaskList({
   completed = false,
   emptyMessage,
 }: TaskListProps) {
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editMinutes, setEditMinutes] = useState("");
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -88,15 +91,73 @@ export function TaskList({
               onToggle={() => onToggle(task.id)}
               onDelete={() => onDelete(task.id)}
               onSelect={() => onSelect(activeTaskId === task.id ? null : task.id)}
-              onEdit={
+              onEditStart={
                 onEdit
-                  ? (updates) => onEdit(task.id, updates)
+                  ? () => {
+                      setEditingTask(task);
+                      setEditTitle(task.title);
+                      setEditMinutes(task.minutes.toString());
+                    }
                   : undefined
               }
             />
           ))}
         </ul>
       </SortableContext>
+
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[var(--radius-lg)] bg-card p-6 shadow-lg border border-border">
+            <h3 className="mb-4 text-lg font-semibold">Editar Tarefa</h3>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-muted">Título</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-muted">Duração (minutos)</label>
+                <input
+                  type="number"
+                  value={editMinutes}
+                  onChange={(e) => setEditMinutes(e.target.value)}
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  min="1"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+                className="rounded-full bg-muted-bg px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onEdit) {
+                    onEdit(editingTask.id, {
+                      title: editTitle.trim() || editingTask.title,
+                      minutes: parseInt(editMinutes) || editingTask.minutes,
+                    });
+                  }
+                  setEditingTask(null);
+                }}
+                className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DndContext>
   );
 }
@@ -108,7 +169,7 @@ type SortableTaskItemProps = {
   onToggle: () => void;
   onDelete: () => void;
   onSelect: () => void;
-  onEdit?: (updates: Partial<Task>) => void;
+  onEditStart?: () => void;
 };
 
 function SortableTaskItem({
@@ -118,7 +179,7 @@ function SortableTaskItem({
   onToggle,
   onDelete,
   onSelect,
-  onEdit,
+  onEditStart,
 }: SortableTaskItemProps) {
   const {
     attributes,
@@ -135,20 +196,6 @@ function SortableTaskItem({
     zIndex: isDragging ? 10 : undefined,
     position: isDragging ? ("relative" as const) : undefined,
   };
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [editMinutes, setEditMinutes] = useState(task.minutes.toString());
-
-  function handleSave() {
-    if (onEdit) {
-      onEdit({
-        title: editTitle.trim() || task.title,
-        minutes: parseInt(editMinutes) || task.minutes,
-      });
-    }
-    setIsEditing(false);
-  }
 
   return (
     <li
@@ -183,59 +230,22 @@ function SortableTaskItem({
         {task.completed && <CheckIcon />}
       </button>
 
-      {isEditing ? (
-        <div className="flex flex-1 items-center gap-2">
-          <input
-            type="text"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm focus:border-accent focus:outline-none"
-            autoFocus
-          />
-          <input
-            type="number"
-            value={editMinutes}
-            onChange={(e) => setEditMinutes(e.target.value)}
-            className="w-16 rounded border border-border bg-background px-2 py-1 text-sm focus:border-accent focus:outline-none"
-            min="1"
-          />
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded bg-accent px-2 py-1 text-xs font-medium text-white hover:bg-accent-hover"
-          >
-            Salvar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsEditing(false);
-              setEditTitle(task.title);
-              setEditMinutes(task.minutes.toString());
-            }}
-            className="rounded bg-muted-bg px-2 py-1 text-xs font-medium text-muted hover:text-foreground"
-          >
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onSelect}
-          className="min-w-0 flex-1 text-left"
+      <button
+        type="button"
+        onClick={onSelect}
+        className="min-w-0 flex-1 text-left"
+      >
+        <p
+          className={`truncate font-medium ${
+            task.completed ? "line-through text-muted" : ""
+          }`}
         >
-          <p
-            className={`truncate font-medium ${
-              task.completed ? "line-through text-muted" : ""
-            }`}
-          >
-            {task.title}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">{task.minutes} min</p>
-        </button>
-      )}
+          {task.title}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">{task.minutes} min</p>
+      </button>
 
-      {!isEditing && !completed && (
+      {!completed && (
         <button
           type="button"
           onClick={onSelect}
@@ -249,10 +259,10 @@ function SortableTaskItem({
         </button>
       )}
 
-      {!isEditing && onEdit && (
+      {onEditStart && (
         <button
           type="button"
-          onClick={() => setIsEditing(true)}
+          onClick={onEditStart}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
           aria-label="Editar tarefa"
         >
@@ -260,16 +270,14 @@ function SortableTaskItem({
         </button>
       )}
 
-      {!isEditing && (
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
-          aria-label="Excluir tarefa"
-        >
-          <TrashIcon />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
+        aria-label="Excluir tarefa"
+      >
+        <TrashIcon />
+      </button>
     </li>
   );
 }
