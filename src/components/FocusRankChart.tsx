@@ -5,9 +5,9 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 import type { Task } from "@/types";
 
@@ -16,19 +16,29 @@ type Props = {
   hideContainer?: boolean;
 };
 
-// Custom tooltip
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const { title, focusedMinutes } = payload[0].payload;
+function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h${rest}`;
+}
+
+// Valor fixo no fim da barra — dispensa o tooltip flutuante, que cobria a barra
+function ValueLabel({ viewBox, value, index }: any) {
+  const { x, y, width, height } = viewBox;
+  const isTop = index === 0;
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm shadow-[var(--shadow-md)]">
-      <p className="font-medium">{title}</p>
-      <p className="text-muted">
-        {focusedMinutes >= 60
-          ? `${Math.floor(focusedMinutes / 60)}h ${focusedMinutes % 60}min`
-          : `${focusedMinutes}min`}
-      </p>
-    </div>
+    <text
+      x={x + width + 8}
+      y={y + height / 2}
+      textAnchor="start"
+      dominantBaseline="central"
+      fontSize={11}
+      fontWeight={isTop ? 600 : 500}
+      fill={isTop ? "var(--accent)" : "var(--muted)"}
+    >
+      {formatDuration(value)}
+    </text>
   );
 }
 
@@ -39,8 +49,7 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
     .slice(0, 8)
     .map((t, i) => ({
       ...t,
-      label:
-        t.title.length > 18 ? t.title.slice(0, 16) + "…" : t.title,
+      label: t.title.length > 16 ? t.title.slice(0, 15) + "…" : t.title,
       rank: i + 1,
     }));
 
@@ -50,6 +59,21 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
 
   const accent = "var(--accent)";
   const accentMuted = "var(--accent-muted)";
+
+  // Tick em linha única: o padrão do Recharts quebra títulos longos em duas linhas
+  const renderTick = ({ x, y, payload }: any) => (
+    <text
+      x={x}
+      y={y}
+      textAnchor="end"
+      dominantBaseline="central"
+      fontSize={12}
+      fill="var(--foreground)"
+    >
+      <title>{ranked[payload.index]?.title ?? payload.value}</title>
+      {payload.value}
+    </text>
+  );
 
   const content = (
     <>
@@ -69,7 +93,7 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
         <BarChart
           data={ranked}
           layout="vertical"
-          margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+          margin={{ top: 0, right: 52, left: 0, bottom: 0 }}
           barCategoryGap="20%"
         >
           <XAxis
@@ -80,12 +104,11 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
           <YAxis
             type="category"
             dataKey="label"
-            width={110}
-            tick={{ fontSize: 12, fill: "var(--foreground)" }}
+            width={112}
+            tick={renderTick}
             tickLine={false}
             axisLine={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "transparent" }} />
           <Bar
             dataKey="focusedMinutes"
             radius={[0, 6, 6, 0]}
@@ -97,6 +120,7 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
                 fill={i === 0 ? accent : accentMuted}
               />
             ))}
+            <LabelList dataKey="focusedMinutes" content={<ValueLabel />} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
