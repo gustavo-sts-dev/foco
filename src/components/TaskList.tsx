@@ -222,83 +222,86 @@ function SortableTaskItem({
     <li
       ref={setNodeRef}
       style={style}
-      className={`group flex items-start gap-3 rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)] transition-all ${
+      className={`group flex flex-col gap-3 rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)] transition-all ${
         isRunningTask ? "ring-2 ring-accent" : ""
       } ${completed ? "opacity-60" : ""} ${isDragging ? "opacity-50 ring-2 ring-accent" : ""}`}
     >
-      {!completed && (
-        <button
-          type="button"
-          className="mt-0.5 cursor-grab touch-none p-1 text-muted hover:text-foreground active:cursor-grabbing"
-          aria-label="Reordenar tarefa"
-          {...attributes}
-          {...listeners}
-        >
-          <DragIcon />
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          task.completed
-            ? "border-success bg-success text-white"
-            : "border-border hover:border-accent"
-        }`}
-        aria-label={task.completed ? "Desmarcar tarefa" : "Concluir tarefa"}
-      >
-        {task.completed && <CheckIcon />}
-      </button>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <p
-            className={`min-w-0 flex-1 font-medium break-words leading-snug ${
-              task.completed ? "line-through text-muted" : "text-foreground"
-            }`}
-          >
-            {task.title}
-          </p>
-
-          <span className="mt-0.5 shrink-0 rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
-            {task.minutes} min
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-start gap-2">
-          {!completed && onStartFocus && (
-            <TimerPill label="Focar" active={isFocusTask} onClick={onStartFocus} />
-          )}
-
-          {!completed && onStartStopwatch && (
-            <TimerPill
-              label="Cronômetro"
-              active={isStopwatchTask}
-              onClick={onStartStopwatch}
-            />
-          )}
-
-          {onEditStart && (
-            <button
-              type="button"
-              onClick={onEditStart}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
-              aria-label="Editar tarefa"
-            >
-              <EditIcon />
-            </button>
-          )}
-
+      <div className="flex items-start gap-3">
+        {!completed && (
           <button
             type="button"
-            onClick={onDelete}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
-            aria-label="Excluir tarefa"
+            className="mt-0.5 cursor-grab touch-none p-1 text-muted hover:text-foreground active:cursor-grabbing"
+            aria-label="Reordenar tarefa"
+            {...attributes}
+            {...listeners}
           >
-            <TrashIcon />
+            <DragIcon />
           </button>
-        </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+            task.completed
+              ? "border-success bg-success text-white"
+              : "border-border hover:border-accent"
+          }`}
+          aria-label={task.completed ? "Desmarcar tarefa" : "Concluir tarefa"}
+        >
+          {task.completed && <CheckIcon />}
+        </button>
+
+        <p
+          className={`min-w-0 flex-1 font-medium break-words leading-snug ${
+            task.completed ? "line-through text-muted" : "text-foreground"
+          }`}
+        >
+          {task.title}
+        </p>
+
+        <span className="mt-0.5 shrink-0 rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
+          {task.minutes} min
+        </span>
+      </div>
+
+      {/* Fora da coluna do texto: alinhada ao checkbox, ganha a largura que faltava */}
+      <div
+        className={`flex flex-wrap items-center justify-start gap-2 ${
+          completed ? "" : "pl-9"
+        }`}
+      >
+        {!completed && onStartFocus && (
+          <TimerPill label="Focar" active={isFocusTask} onClick={onStartFocus} />
+        )}
+
+        {!completed && onStartStopwatch && (
+          <TimerPill
+            label="Cronômetro"
+            active={isStopwatchTask}
+            onClick={onStartStopwatch}
+          />
+        )}
+
+        {onEditStart && (
+          <button
+            type="button"
+            onClick={onEditStart}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-muted-bg hover:text-foreground group-hover:opacity-100 max-sm:opacity-100"
+            aria-label="Editar tarefa"
+          >
+            <EditIcon />
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 max-sm:opacity-100"
+          aria-label="Excluir tarefa"
+        >
+          <TrashIcon />
+        </button>
       </div>
     </li>
   );
