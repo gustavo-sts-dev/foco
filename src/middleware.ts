@@ -16,8 +16,8 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // API auth routes always pass
-  if (pathname.startsWith("/api/auth")) return NextResponse.next();
+  // API auth routes and register API always pass
+  if (pathname.startsWith("/api/auth") || pathname === "/api/register") return NextResponse.next();
 
   // Protect all other routes
   if (!isLoggedIn) {
