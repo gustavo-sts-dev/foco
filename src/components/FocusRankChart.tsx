@@ -1,14 +1,5 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from "recharts";
 import type { Task } from "@/types";
 
 type Props = {
@@ -23,57 +14,17 @@ function formatDuration(minutes: number) {
   return rest === 0 ? `${hours}h` : `${hours}h${rest}`;
 }
 
-// Valor fixo no fim da barra — dispensa o tooltip flutuante, que cobria a barra
-function ValueLabel({ viewBox, value, index }: any) {
-  const { x, y, width, height } = viewBox;
-  const isTop = index === 0;
-  return (
-    <text
-      x={x + width + 8}
-      y={y + height / 2}
-      textAnchor="start"
-      dominantBaseline="central"
-      fontSize={11}
-      fontWeight={isTop ? 600 : 500}
-      fill={isTop ? "var(--accent)" : "var(--muted)"}
-    >
-      {formatDuration(value)}
-    </text>
-  );
-}
-
 export function FocusRankChart({ tasks, hideContainer = false }: Props) {
   const ranked = tasks
     .filter((t) => (t.focusedMinutes ?? 0) > 0)
     .sort((a, b) => (b.focusedMinutes ?? 0) - (a.focusedMinutes ?? 0))
-    .slice(0, 8)
-    .map((t, i) => ({
-      ...t,
-      label: t.title.length > 16 ? t.title.slice(0, 15) + "…" : t.title,
-      rank: i + 1,
-    }));
+    .slice(0, 8);
 
   if (ranked.length === 0) {
     return null;
   }
 
-  const accent = "var(--accent)";
-  const accentMuted = "var(--accent-muted)";
-
-  // Tick em linha única: o padrão do Recharts quebra títulos longos em duas linhas
-  const renderTick = ({ x, y, payload }: any) => (
-    <text
-      x={x}
-      y={y}
-      textAnchor="end"
-      dominantBaseline="central"
-      fontSize={12}
-      fill="var(--foreground)"
-    >
-      <title>{ranked[payload.index]?.title ?? payload.value}</title>
-      {payload.value}
-    </text>
-  );
+  const max = ranked[0].focusedMinutes ?? 0;
 
   const content = (
     <>
@@ -89,41 +40,40 @@ export function FocusRankChart({ tasks, hideContainer = false }: Props) {
         </div>
       )}
 
-      <ResponsiveContainer width="100%" height={ranked.length * 44 + 8}>
-        <BarChart
-          data={ranked}
-          layout="vertical"
-          margin={{ top: 0, right: 52, left: 0, bottom: 0 }}
-          barCategoryGap="20%"
-        >
-          <XAxis
-            type="number"
-            hide
-            domain={[0, "dataMax"]}
-          />
-          <YAxis
-            type="category"
-            dataKey="label"
-            width={112}
-            tick={renderTick}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Bar
-            dataKey="focusedMinutes"
-            radius={[0, 6, 6, 0]}
-            minPointSize={4}
-          >
-            {ranked.map((entry, i) => (
-              <Cell
-                key={entry.id}
-                fill={i === 0 ? accent : accentMuted}
-              />
-            ))}
-            <LabelList dataKey="focusedMinutes" content={<ValueLabel />} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <ol className="space-y-3">
+        {ranked.map((task, i) => {
+          const minutes = task.focusedMinutes ?? 0;
+          const isTop = i === 0;
+          // Piso de 3% para que tarefas curtas continuem visíveis ao lado da maior
+          const width = Math.max(3, (minutes / max) * 100);
+
+          return (
+            <li key={task.id}>
+              <div className="mb-1.5 flex items-baseline gap-3">
+                <span
+                  className="min-w-0 flex-1 truncate text-sm"
+                  title={task.title}
+                >
+                  {task.title}
+                </span>
+                <span
+                  className={`shrink-0 text-xs tabular-nums ${
+                    isTop ? "font-semibold text-accent" : "text-muted"
+                  }`}
+                >
+                  {formatDuration(minutes)}
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${width}%`, opacity: isTop ? 1 : 0.45 }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </>
   );
 

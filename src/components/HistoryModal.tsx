@@ -72,9 +72,9 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
           </button>
         </div>
 
-        <div className="-mx-4">
+        <div>
           {chartData.length > 0 ? (
-            <FocusRankChart tasks={chartData} />
+            <FocusRankChart tasks={chartData} hideContainer />
           ) : (
             <div className="py-8 text-center text-sm text-muted">
               Nenhuma tarefa focada nos últimos 7 dias.
