@@ -9,7 +9,7 @@ import { TaskList } from "@/components/TaskList";
 import { TabNavigation, TabNavigationDesktop } from "@/components/TabNavigation";
 import { Stopwatch } from "@/components/Stopwatch";
 import { Agenda } from "@/components/Agenda";
-import { FocusRankChart } from "@/components/FocusRankChart";
+import { HistoryModal } from "@/components/HistoryModal";
 import { useAppData } from "@/hooks/useAppData";
 import { createId } from "@/lib/utils";
 import type { Task, TabType } from "@/types";
@@ -18,6 +18,7 @@ export default function Home() {
   const { data, update, loaded } = useAppData();
   const [activeTab, setActiveTab] = useState<TabType>("foco");
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   const today = new Date().toISOString().slice(0, 10);
   const [agendaDate, setAgendaDate] = useState(today);
@@ -33,6 +34,9 @@ export default function Home() {
 
   // Agenda Tab tasks
   const agendaTasks = data.tasks.filter((t) => getTaskDate(t) === agendaDate);
+
+  // Extract unique task names for autocomplete
+  const recentTaskNames = Array.from(new Set(data.tasks.map((t) => t.title.trim()))).filter(Boolean);
 
   function handleAddTask(title: string, minutes: number, date: string = today) {
     const task: Task = {
@@ -128,7 +132,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-20 sm:pb-8 pt-safe">
-      <Header />
+      <Header onOpenHistory={() => setIsHistoryOpen(true)} />
 
       <main className="mt-6 flex flex-col gap-6">
         <StatsBar
@@ -155,7 +159,10 @@ export default function Home() {
                 </span>
               </div>
 
-              <TaskForm onAdd={(title, min) => handleAddTask(title, min, today)} />
+              <TaskForm 
+                onAdd={(title, min) => handleAddTask(title, min, today)} 
+                recentTaskNames={recentTaskNames}
+              />
 
               <TaskList
                 tasks={pendingTasks}
@@ -185,8 +192,6 @@ export default function Home() {
                   />
                 </div>
               )}
-
-              <FocusRankChart tasks={data.tasks} />
             </section>
           </div>
         </div>
@@ -208,6 +213,7 @@ export default function Home() {
             onCloneDay={handleCloneDay}
             onReorderTasks={handleReorderTask}
             onEditTask={handleEditTask}
+            recentTaskNames={recentTaskNames}
           />
         </div>
       </main>
@@ -228,6 +234,12 @@ export default function Home() {
       </div>
 
       <TabNavigation activeTab={activeTab} onChange={setActiveTab} />
+      
+      <HistoryModal 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        tasks={data.tasks} 
+      />
     </div>
   );
 }

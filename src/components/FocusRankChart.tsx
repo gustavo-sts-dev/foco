@@ -13,6 +13,7 @@ import type { Task } from "@/types";
 
 type Props = {
   tasks: Task[];
+  hideContainer?: boolean;
 };
 
 // Custom tooltip
@@ -31,7 +32,7 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-export function FocusRankChart({ tasks }: Props) {
+export function FocusRankChart({ tasks, hideContainer = false }: Props) {
   const ranked = tasks
     .filter((t) => (t.focusedMinutes ?? 0) > 0)
     .sort((a, b) => (b.focusedMinutes ?? 0) - (a.focusedMinutes ?? 0))
@@ -50,17 +51,19 @@ export function FocusRankChart({ tasks }: Props) {
   const accent = "var(--accent)";
   const accentMuted = "var(--accent-muted)";
 
-  return (
-    <div className="rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)]">
-      <div className="mb-4 flex items-center gap-2">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden="true">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        <h3 className="text-sm font-semibold">Ranking de Foco</h3>
-        <span className="ml-auto text-xs text-muted">minutos acumulados</span>
-      </div>
+  const content = (
+    <>
+      {!hideContainer && (
+        <div className="mb-4 flex items-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden="true">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <h3 className="text-sm font-semibold">Ranking de Foco</h3>
+          <span className="ml-auto text-xs text-muted">minutos acumulados</span>
+        </div>
+      )}
 
       <ResponsiveContainer width="100%" height={ranked.length * 44 + 8}>
         <BarChart
@@ -97,6 +100,16 @@ export function FocusRankChart({ tasks }: Props) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+    </>
+  );
+
+  if (hideContainer) {
+    return <div className="w-full">{content}</div>;
+  }
+
+  return (
+    <div className="rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)]">
+      {content}
     </div>
   );
 }

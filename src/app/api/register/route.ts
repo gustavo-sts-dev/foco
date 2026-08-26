@@ -34,9 +34,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true }, { status: 201 });
-  } catch {
+  } catch (err: any) {
+    console.error("Registration error:", err);
     return NextResponse.json(
-      { error: "Erro interno. Tente novamente." },
+      { error: "Erro interno. Tente novamente.", details: err.message },
       { status: 500 }
     );
   }

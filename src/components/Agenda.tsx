@@ -15,6 +15,7 @@ type AgendaProps = {
   onCloneDay: (sourceDate: string, targetDate: string) => void;
   onReorderTasks: (activeId: string, overId: string) => void;
   onEditTask: (id: string, updates: Partial<Task>) => void;
+  recentTaskNames?: string[];
 };
 
 export function Agenda({
@@ -27,6 +28,7 @@ export function Agenda({
   onCloneDay,
   onReorderTasks,
   onEditTask,
+  recentTaskNames = [],
 }: AgendaProps) {
   const [cloneDate, setCloneDate] = useState("");
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -57,7 +59,10 @@ export function Agenda({
           </span>
         </div>
 
-        <TaskForm onAdd={(title, min) => onAddTask(title, min, selectedDate)} />
+        <TaskForm 
+          onAdd={(title, min) => onAddTask(title, min, selectedDate)} 
+          recentTaskNames={recentTaskNames}
+        />
 
         <TaskList
           tasks={pendingTasks}

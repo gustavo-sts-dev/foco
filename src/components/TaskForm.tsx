@@ -5,11 +5,12 @@ import { MobileTextInput, MobileStepper } from "./MobileInputs";
 
 type TaskFormProps = {
   onAdd: (title: string, minutes: number) => void;
+  recentTaskNames?: string[];
 };
 
 const DURATIONS = [15, 25, 45, 60];
 
-export function TaskForm({ onAdd }: TaskFormProps) {
+export function TaskForm({ onAdd, recentTaskNames = [] }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [minutes, setMinutes] = useState(25);
   const [expanded, setExpanded] = useState(false);
@@ -38,7 +39,17 @@ export function TaskForm({ onAdd }: TaskFormProps) {
           onFocus={() => setExpanded(true)}
           placeholder="O que você vai fazer?"
           maxLength={120}
+          list="task-suggestions"
         />
+        
+        {recentTaskNames.length > 0 && (
+          <datalist id="task-suggestions">
+            {recentTaskNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        )}
+
         <button
           type="submit"
           disabled={!title.trim()}

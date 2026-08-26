@@ -1,6 +1,6 @@
 "use client";
 
-export function MobileTextInput({ value, onChange, placeholder, autoFocus, maxLength, onFocus }: any) {
+export function MobileTextInput({ value, onChange, placeholder, autoFocus, maxLength, onFocus, list }: any) {
   return (
     <div className="relative flex w-full items-center">
       <input
@@ -12,6 +12,7 @@ export function MobileTextInput({ value, onChange, placeholder, autoFocus, maxLe
         className="min-h-12 w-full rounded-xl border border-border bg-background px-4 pr-12 text-base text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         autoFocus={autoFocus}
         maxLength={maxLength}
+        list={list}
       />
       {value && (
         <button
