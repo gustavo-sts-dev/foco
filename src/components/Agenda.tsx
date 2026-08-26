@@ -31,7 +31,6 @@ export function Agenda({
   recentTaskNames = [],
 }: AgendaProps) {
   const [cloneDate, setCloneDate] = useState("");
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
   const pendingTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
@@ -64,12 +63,11 @@ export function Agenda({
           recentTaskNames={recentTaskNames}
         />
 
+        {/* Sem onStartFocus/onStartStopwatch: os timers rodam so nas tarefas de hoje */}
         <TaskList
           tasks={pendingTasks}
-          activeTaskId={activeTaskId}
           onToggle={onToggleTask}
           onDelete={onDeleteTask}
-          onSelect={setActiveTaskId}
           onReorder={onReorderTasks}
           onEdit={onEditTask}
           emptyMessage="Nenhuma tarefa para este dia."
@@ -82,10 +80,8 @@ export function Agenda({
             </p>
             <TaskList
               tasks={completedTasks}
-              activeTaskId={activeTaskId}
               onToggle={onToggleTask}
               onDelete={onDeleteTask}
-              onSelect={setActiveTaskId}
               onReorder={onReorderTasks}
               onEdit={onEditTask}
               completed

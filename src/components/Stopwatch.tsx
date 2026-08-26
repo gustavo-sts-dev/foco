@@ -2,8 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { formatTimer } from "@/lib/utils";
+import type { Task } from "@/types";
 
-export function Stopwatch() {
+type StopwatchProps = {
+  activeTask?: Task | null;
+  onFinish?: (minutes: number) => void;
+};
+
+export function Stopwatch({ activeTask = null, onFinish }: StopwatchProps) {
   const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,11 +50,37 @@ export function Stopwatch() {
     return clearTimer;
   }, [running, clearTimer]); // explicitly removed seconds from deps so it doesn't reset the interval
 
+  // Trocar a tarefa vinculada começa uma contagem nova
+  useEffect(() => {
+    resetTimer();
+  }, [activeTask?.id, resetTimer]);
+
+  // Pausado com tempo na conta: dá para creditar o tempo em vez de só zerar
+  const canFinish = !running && seconds > 0;
+
+  function handleSecondaryAction() {
+    if (canFinish) {
+      const elapsedMinutes = Math.round(seconds / 60);
+      if (elapsedMinutes > 0) {
+        onFinish?.(elapsedMinutes);
+      }
+    }
+    resetTimer();
+  }
+
   // A fixed circle without progress, just an infinite spin if running
   return (
     <section className="rounded-[var(--radius-lg)] bg-card p-6 shadow-[var(--shadow-md)] flex flex-col items-center">
-      <h2 className="mb-6 text-lg font-semibold tracking-tight">Cronômetro Livre</h2>
-      
+      <h2 className="text-lg font-semibold tracking-tight">
+        {activeTask ? "Cronômetro" : "Cronômetro Livre"}
+      </h2>
+
+      {activeTask && (
+        <p className="mt-3 max-w-full truncate text-sm font-medium text-accent">
+          {activeTask.title}
+        </p>
+      )}
+
       <div className="relative mt-4 flex items-center justify-center">
         {running && (
           <div className="absolute inset-0 m-auto h-[200px] w-[200px] rounded-full border-2 border-accent/20 animate-pulse-ring" />
@@ -102,12 +134,18 @@ export function Stopwatch() {
         </button>
         <button
           type="button"
-          onClick={resetTimer}
+          onClick={handleSecondaryAction}
           className="flex h-12 min-w-[80px] items-center justify-center rounded-full bg-muted-bg px-4 font-medium text-muted transition-colors hover:text-foreground"
         >
-          Zerar
+          {canFinish ? "Finalizar" : "Zerar"}
         </button>
       </div>
+
+      {activeTask && (
+        <p className="mt-4 text-center text-xs text-muted">
+          &quot;Finalizar&quot; soma o tempo decorrido nesta tarefa.
+        </p>
+      )}
     </section>
   );
 }

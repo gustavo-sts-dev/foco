@@ -17,7 +17,9 @@ import type { Task, TabType } from "@/types";
 export default function Home() {
   const { data, update, loaded } = useAppData();
   const [activeTab, setActiveTab] = useState<TabType>("foco");
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  // Cada timer tem seu proprio vinculo, para que iniciar um nao zere o outro
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
+  const [stopwatchTaskId, setStopwatchTaskId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   const today = new Date().toISOString().slice(0, 10);
@@ -30,7 +32,8 @@ export default function Home() {
   const todayTasks = data.tasks.filter((t) => getTaskDate(t) === today);
   const pendingTasks = todayTasks.filter((t) => !t.completed);
   const completedTasks = todayTasks.filter((t) => t.completed);
-  const activeTask = todayTasks.find((t) => t.id === activeTaskId) ?? null;
+  const focusTask = todayTasks.find((t) => t.id === focusTaskId) ?? null;
+  const stopwatchTask = todayTasks.find((t) => t.id === stopwatchTaskId) ?? null;
 
   // Agenda Tab tasks
   const agendaTasks = data.tasks.filter((t) => getTaskDate(t) === agendaDate);
@@ -50,6 +53,12 @@ export default function Home() {
     update((prev) => ({ ...prev, tasks: [task, ...prev.tasks] }));
   }
 
+  // Tarefa concluida ou removida deixa de estar vinculada a qualquer timer
+  function unbindTimers(id: string) {
+    setFocusTaskId((current) => (current === id ? null : current));
+    setStopwatchTaskId((current) => (current === id ? null : current));
+  }
+
   function handleToggleTask(id: string) {
     update((prev) => ({
       ...prev,
@@ -57,7 +66,7 @@ export default function Home() {
         t.id === id ? { ...t, completed: !t.completed } : t
       ),
     }));
-    if (activeTaskId === id) setActiveTaskId(null);
+    unbindTimers(id);
   }
 
   function handleDeleteTask(id: string) {
@@ -65,7 +74,26 @@ export default function Home() {
       ...prev,
       tasks: prev.tasks.filter((t) => t.id !== id),
     }));
-    if (activeTaskId === id) setActiveTaskId(null);
+    unbindTimers(id);
+  }
+
+  function handleStartFocus(id: string) {
+    // Clicar de novo no botao da tarefa ja vinculada desfaz o vinculo
+    if (focusTaskId === id) {
+      setFocusTaskId(null);
+      return;
+    }
+    setFocusTaskId(id);
+    setActiveTab("foco");
+  }
+
+  function handleStartStopwatch(id: string) {
+    if (stopwatchTaskId === id) {
+      setStopwatchTaskId(null);
+      return;
+    }
+    setStopwatchTaskId(id);
+    setActiveTab("cronometro");
   }
 
   function handleReorderTask(activeId: string, overId: string) {
@@ -90,9 +118,9 @@ export default function Home() {
   function handleFocusComplete(minutes: number) {
     update((prev) => {
       let updatedTasks = prev.tasks;
-      if (activeTaskId) {
+      if (focusTaskId) {
         updatedTasks = prev.tasks.map((t) =>
-          t.id === activeTaskId
+          t.id === focusTaskId
             ? { ...t, completed: true, focusedMinutes: (t.focusedMinutes ?? 0) + minutes }
             : t
         );
@@ -103,7 +131,27 @@ export default function Home() {
         tasks: updatedTasks,
       };
     });
-    setActiveTaskId(null);
+    setFocusTaskId(null);
+  }
+
+  // O cronometro nao tem duracao planejada, entao credita o tempo sem concluir a tarefa
+  function handleStopwatchFinish(minutes: number) {
+    update((prev) => {
+      let updatedTasks = prev.tasks;
+      if (stopwatchTaskId) {
+        updatedTasks = prev.tasks.map((t) =>
+          t.id === stopwatchTaskId
+            ? { ...t, focusedMinutes: (t.focusedMinutes ?? 0) + minutes }
+            : t
+        );
+      }
+      return {
+        ...prev,
+        focusMinutesToday: prev.focusMinutesToday + minutes,
+        tasks: updatedTasks,
+      };
+    });
+    setStopwatchTaskId(null);
   }
 
   function handleCloneDay(sourceDate: string, targetDate: string) {
@@ -147,7 +195,7 @@ export default function Home() {
         <div className={activeTab === "foco" ? "block" : "hidden"}>
           <div className="flex flex-col gap-6">
             <FocusTimer
-              activeTask={activeTask}
+              activeTask={focusTask}
               onFocusComplete={handleFocusComplete}
             />
 
@@ -166,10 +214,12 @@ export default function Home() {
 
               <TaskList
                 tasks={pendingTasks}
-                activeTaskId={activeTaskId}
+                focusTaskId={focusTaskId}
+                stopwatchTaskId={stopwatchTaskId}
                 onToggle={handleToggleTask}
                 onDelete={handleDeleteTask}
-                onSelect={setActiveTaskId}
+                onStartFocus={handleStartFocus}
+                onStartStopwatch={handleStartStopwatch}
                 onReorder={handleReorderTask}
                 onEdit={handleEditTask}
                 emptyMessage="Nenhuma tarefa para hoje. Adicione uma acima."
@@ -182,10 +232,8 @@ export default function Home() {
                   </p>
                   <TaskList
                     tasks={completedTasks}
-                    activeTaskId={activeTaskId}
                     onToggle={handleToggleTask}
                     onDelete={handleDeleteTask}
-                    onSelect={setActiveTaskId}
                     onReorder={handleReorderTask}
                     onEdit={handleEditTask}
                     completed
@@ -198,7 +246,10 @@ export default function Home() {
 
         {/* Cronômetro Tab */}
         <div className={activeTab === "cronometro" ? "block" : "hidden"}>
-          <Stopwatch />
+          <Stopwatch
+            activeTask={stopwatchTask}
+            onFinish={handleStopwatchFinish}
+          />
         </div>
 
         {/* Agenda Tab */}

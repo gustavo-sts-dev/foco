@@ -21,10 +21,16 @@ import { CSS } from "@dnd-kit/utilities";
 
 type TaskListProps = {
   tasks: Task[];
-  activeTaskId: string | null;
+  /** Tarefa ligada ao timer pomodoro */
+  focusTaskId?: string | null;
+  /** Tarefa ligada ao cronometro livre */
+  stopwatchTaskId?: string | null;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onSelect: (id: string | null) => void;
+  /** Sem esta prop a lista nao mostra o botao "Focar" */
+  onStartFocus?: (id: string) => void;
+  /** Sem esta prop a lista nao mostra o botao "Cronometro" */
+  onStartStopwatch?: (id: string) => void;
   onReorder?: (activeId: string, overId: string) => void;
   onEdit?: (id: string, updates: Partial<Task>) => void;
   completed?: boolean;
@@ -33,10 +39,12 @@ type TaskListProps = {
 
 export function TaskList({
   tasks,
-  activeTaskId,
+  focusTaskId = null,
+  stopwatchTaskId = null,
   onToggle,
   onDelete,
-  onSelect,
+  onStartFocus,
+  onStartStopwatch,
   onReorder,
   onEdit,
   completed = false,
@@ -87,11 +95,17 @@ export function TaskList({
             <SortableTaskItem
               key={task.id}
               task={task}
-              isActive={activeTaskId === task.id}
+              isFocusTask={focusTaskId === task.id}
+              isStopwatchTask={stopwatchTaskId === task.id}
               completed={completed}
               onToggle={() => onToggle(task.id)}
               onDelete={() => onDelete(task.id)}
-              onSelect={() => onSelect(activeTaskId === task.id ? null : task.id)}
+              onStartFocus={
+                onStartFocus ? () => onStartFocus(task.id) : undefined
+              }
+              onStartStopwatch={
+                onStartStopwatch ? () => onStartStopwatch(task.id) : undefined
+              }
               onEditStart={
                 onEdit
                   ? () => {
@@ -165,21 +179,25 @@ export function TaskList({
 
 type SortableTaskItemProps = {
   task: Task;
-  isActive: boolean;
+  isFocusTask: boolean;
+  isStopwatchTask: boolean;
   completed: boolean;
   onToggle: () => void;
   onDelete: () => void;
-  onSelect: () => void;
+  onStartFocus?: () => void;
+  onStartStopwatch?: () => void;
   onEditStart?: () => void;
 };
 
 function SortableTaskItem({
   task,
-  isActive,
+  isFocusTask,
+  isStopwatchTask,
   completed,
   onToggle,
   onDelete,
-  onSelect,
+  onStartFocus,
+  onStartStopwatch,
   onEditStart,
 }: SortableTaskItemProps) {
   const {
@@ -198,12 +216,14 @@ function SortableTaskItem({
     position: isDragging ? ("relative" as const) : undefined,
   };
 
+  const isRunningTask = isFocusTask || isStopwatchTask;
+
   return (
     <li
       ref={setNodeRef}
       style={style}
       className={`group flex items-start gap-3 rounded-[var(--radius-lg)] bg-card p-4 shadow-[var(--shadow)] transition-all ${
-        isActive ? "ring-2 ring-accent" : ""
+        isRunningTask ? "ring-2 ring-accent" : ""
       } ${completed ? "opacity-60" : ""} ${isDragging ? "opacity-50 ring-2 ring-accent" : ""}`}
     >
       {!completed && (
@@ -233,38 +253,30 @@ function SortableTaskItem({
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <button
-            type="button"
-            onClick={onSelect}
-            className="text-left flex-1"
+          <p
+            className={`min-w-0 flex-1 font-medium break-words leading-snug ${
+              task.completed ? "line-through text-muted" : "text-foreground"
+            }`}
           >
-            <p
-              className={`font-medium break-words leading-snug ${
-                task.completed ? "line-through text-muted" : "text-foreground"
-              }`}
-            >
-              {task.title}
-            </p>
-          </button>
+            {task.title}
+          </p>
 
           <span className="mt-0.5 shrink-0 rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
             {task.minutes} min
           </span>
         </div>
 
-        <div className="flex items-center justify-start gap-2">
-          {!completed && (
-            <button
-              type="button"
-              onClick={onSelect}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-accent text-white"
-                  : "bg-accent-muted text-accent opacity-0 group-hover:opacity-100 max-sm:opacity-100"
-              }`}
-            >
-              {isActive ? "Focando" : "Focar"}
-            </button>
+        <div className="flex flex-wrap items-center justify-start gap-2">
+          {!completed && onStartFocus && (
+            <TimerPill label="Focar" active={isFocusTask} onClick={onStartFocus} />
+          )}
+
+          {!completed && onStartStopwatch && (
+            <TimerPill
+              label="Cronômetro"
+              active={isStopwatchTask}
+              onClick={onStartStopwatch}
+            />
           )}
 
           {onEditStart && (
@@ -289,6 +301,31 @@ function SortableTaskItem({
         </div>
       </div>
     </li>
+  );
+}
+
+function TimerPill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+        active
+          ? "bg-accent text-white"
+          : "bg-accent-muted text-accent hover:bg-accent hover:text-white"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
