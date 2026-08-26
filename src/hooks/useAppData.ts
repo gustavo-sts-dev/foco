@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppData } from "@/types";
-import { STORAGE_KEY } from "@/types";
 import { resetDailyStats } from "@/lib/utils";
 
 const defaultData: AppData = {
@@ -14,23 +13,45 @@ const defaultData: AppData = {
 export function useAppData() {
   const [data, setData] = useState<AppData>(defaultData);
   const [loaded, setLoaded] = useState(false);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load data from API on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as AppData;
-        setData(resetDailyStats(parsed));
-      }
-    } catch {
-      setData(defaultData);
-    }
-    setLoaded(true);
+    fetch("/api/data")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load");
+        return res.json();
+      })
+      .then((json) => {
+        setData(resetDailyStats(json as AppData));
+      })
+      .catch(() => {
+        setData(defaultData);
+      })
+      .finally(() => setLoaded(true));
   }, []);
 
+  // Save data to API with debounce to avoid excessive requests
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
+      fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasks: data.tasks,
+          focusMinutesToday: data.focusMinutesToday,
+        }),
+      }).catch(() => {
+        // Silently fail — data is still in memory
+      });
+    }, 800);
+
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    };
   }, [data, loaded]);
 
   const update = useCallback((updater: (prev: AppData) => AppData) => {

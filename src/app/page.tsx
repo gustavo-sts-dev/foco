@@ -9,6 +9,7 @@ import { TaskList } from "@/components/TaskList";
 import { TabNavigation, TabNavigationDesktop } from "@/components/TabNavigation";
 import { Stopwatch } from "@/components/Stopwatch";
 import { Agenda } from "@/components/Agenda";
+import { FocusRankChart } from "@/components/FocusRankChart";
 import { useAppData } from "@/hooks/useAppData";
 import { createId } from "@/lib/utils";
 import type { Task, TabType } from "@/types";
@@ -86,8 +87,10 @@ export default function Home() {
     update((prev) => {
       let updatedTasks = prev.tasks;
       if (activeTaskId) {
-        updatedTasks = prev.tasks.map((t) => 
-          t.id === activeTaskId ? { ...t, completed: true } : t
+        updatedTasks = prev.tasks.map((t) =>
+          t.id === activeTaskId
+            ? { ...t, completed: true, focusedMinutes: (t.focusedMinutes ?? 0) + minutes }
+            : t
         );
       }
       return {
@@ -182,6 +185,8 @@ export default function Home() {
                   />
                 </div>
               )}
+
+              <FocusRankChart tasks={data.tasks} />
             </section>
           </div>
         </div>

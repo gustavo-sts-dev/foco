@@ -5,6 +5,7 @@ export type Task = {
   completed: boolean;
   createdAt: string;
   date?: string; // YYYY-MM-DD
+  focusedMinutes?: number; // accumulated focus time in minutes
 };
 
 export type TimerMode = "focus" | "break";

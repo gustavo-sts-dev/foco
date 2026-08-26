@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+
+  tasks        Task[]
+  dailyStats   DailyStats[]
+
+  // NextAuth required fields
+  sessions     Session[]
+  accounts     Account[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Task {
+  id            String   @id @default(cuid())
+  title         String
+  minutes       Int      @default(25)
+  completed     Boolean  @default(false)
+  date          String   // YYYY-MM-DD
+  createdAt     DateTime @default(now())
+  focusedMinutes Int     @default(0)
+  order         Int      @default(0)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DailyStats {
+  id             String   @id @default(cuid())
+  date           String   // YYYY-MM-DD
+  focusMinutes   Int      @default(0)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
