@@ -3,14 +3,14 @@ import { formatMinutes } from "@/lib/utils";
 type StatsBarProps = {
   focusMinutes: number;
   completedCount: number;
-  pendingCount: number;
+  remainingMinutes: number;
 };
 
-export function StatsBar({ focusMinutes, completedCount, pendingCount }: StatsBarProps) {
+export function StatsBar({ focusMinutes, completedCount, remainingMinutes }: StatsBarProps) {
   const stats = [
     { label: "Foco hoje", value: formatMinutes(focusMinutes) },
     { label: "Concluídas", value: String(completedCount) },
-    { label: "Pendentes", value: String(pendingCount) },
+    { label: "Restante", value: formatMinutes(remainingMinutes) },
   ];
 
   return (

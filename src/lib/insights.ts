@@ -32,6 +32,26 @@ export function estimateAccuracy(
   return { ratio: totalFocused / totalMinutes, sample: qualifying.length };
 }
 
+export function describeEstimateAccuracy(
+  accuracy: { ratio: number; sample: number } | null
+): string | null {
+  if (accuracy === null) return null;
+
+  const { ratio } = accuracy;
+
+  if (ratio >= 0.9 && ratio <= 1.1) {
+    return "Suas estimativas estão batendo com a realidade";
+  }
+
+  if (ratio > 1.1) {
+    const pct = Math.round((ratio - 1) * 100);
+    return `Você leva ~${pct}% mais tempo do que planeja`;
+  }
+
+  const pct = Math.round((1 - ratio) * 100);
+  return `Você leva ~${pct}% menos tempo do que planeja`;
+}
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // Constrói a data em UTC a partir de "YYYY-MM-DD" para que a aritmética de dias

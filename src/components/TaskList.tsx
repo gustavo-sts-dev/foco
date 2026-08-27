@@ -217,6 +217,7 @@ function SortableTaskItem({
   };
 
   const isRunningTask = isFocusTask || isStopwatchTask;
+  const focusedMinutes = task.focusedMinutes ?? 0;
 
   return (
     <li
@@ -260,8 +261,19 @@ function SortableTaskItem({
           {task.title}
         </p>
 
-        <span className="mt-0.5 shrink-0 rounded-md bg-muted-bg px-2 py-1 text-xs font-semibold text-muted">
-          {task.minutes} min
+        <span
+          className={`mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${
+            focusedMinutes > task.minutes
+              ? "bg-danger-muted text-danger"
+              : "bg-muted-bg text-muted"
+          }`}
+          title={
+            focusedMinutes > 0
+              ? `${focusedMinutes} min focados de ${task.minutes} planejados`
+              : undefined
+          }
+        >
+          {focusedMinutes > 0 ? `${focusedMinutes}/${task.minutes} min` : `${task.minutes} min`}
         </span>
       </div>
 

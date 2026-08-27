@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Task } from "@/types";
 
 import {
+  describeEstimateAccuracy,
   estimateAccuracy,
   focusStreak,
   MIN_ESTIMATE_SAMPLE,
@@ -131,6 +132,48 @@ describe("estimateAccuracy", () => {
     );
     // soma minutes=100, soma focusedMinutes=50 -> ratio=0.5
     expect(estimateAccuracy(tasks)).toEqual({ ratio: 0.5, sample: 5 });
+  });
+});
+
+describe("describeEstimateAccuracy", () => {
+  it("returns null when accuracy is null", () => {
+    expect(describeEstimateAccuracy(null)).toBeNull();
+  });
+
+  it("returns the 'on target' message at the lower boundary (0.9) inclusive", () => {
+    expect(describeEstimateAccuracy({ ratio: 0.9, sample: 5 })).toBe(
+      "Suas estimativas estão batendo com a realidade"
+    );
+  });
+
+  it("returns the 'on target' message at the upper boundary (1.1) inclusive", () => {
+    expect(describeEstimateAccuracy({ ratio: 1.1, sample: 5 })).toBe(
+      "Suas estimativas estão batendo com a realidade"
+    );
+  });
+
+  it("returns the 'on target' message at ratio 1.0", () => {
+    expect(describeEstimateAccuracy({ ratio: 1, sample: 5 })).toBe(
+      "Suas estimativas estão batendo com a realidade"
+    );
+  });
+
+  it("returns the 'more time' message for ratio 1.5 (~50% more)", () => {
+    expect(describeEstimateAccuracy({ ratio: 1.5, sample: 5 })).toBe(
+      "Você leva ~50% mais tempo do que planeja"
+    );
+  });
+
+  it("returns the 'less time' message for ratio 0.5 (~50% less)", () => {
+    expect(describeEstimateAccuracy({ ratio: 0.5, sample: 5 })).toBe(
+      "Você leva ~50% menos tempo do que planeja"
+    );
+  });
+
+  it("rounds the percentage for a ratio like 1.333 (~33% more)", () => {
+    expect(describeEstimateAccuracy({ ratio: 1.333, sample: 5 })).toBe(
+      "Você leva ~33% mais tempo do que planeja"
+    );
   });
 });
 

@@ -11,7 +11,8 @@ import { Stopwatch } from "@/components/Stopwatch";
 import { Agenda } from "@/components/Agenda";
 import { HistoryModal } from "@/components/HistoryModal";
 import { useAppData } from "@/hooks/useAppData";
-import { createId } from "@/lib/utils";
+import { createId, getTaskDate, getTodayKey } from "@/lib/utils";
+import { focusStreak, remainingPlannedMinutes } from "@/lib/insights";
 import type { Task, TabType } from "@/types";
 
 export default function Home() {
@@ -22,11 +23,17 @@ export default function Home() {
   const [stopwatchTaskId, setStopwatchTaskId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayKey();
   const [agendaDate, setAgendaDate] = useState(today);
 
+  // O dia corrente vem de focusMinutesToday, que é mais atual que o mapa
+  // dailyMinutes (só é arquivado na virada do dia) — por isso a mesclagem.
+  const streakDays = focusStreak(
+    { ...data.dailyMinutes, [today]: data.focusMinutesToday },
+    today
+  );
+
   // Normalization: treat tasks without date as today's tasks
-  const getTaskDate = (t: Task) => t.date || t.createdAt.slice(0, 10);
 
   // Foco Tab tasks (always today)
   const todayTasks = data.tasks.filter((t) => getTaskDate(t) === today);
@@ -180,13 +187,13 @@ export default function Home() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-20 sm:pb-8 pt-safe">
-      <Header onOpenHistory={() => setIsHistoryOpen(true)} />
+      <Header onOpenHistory={() => setIsHistoryOpen(true)} streakDays={streakDays} />
 
       <main className="mt-6 flex flex-col gap-6">
         <StatsBar
           focusMinutes={data.focusMinutesToday}
           completedCount={completedTasks.length}
-          pendingCount={pendingTasks.length}
+          remainingMinutes={remainingPlannedMinutes(todayTasks)}
         />
 
         <TabNavigationDesktop activeTab={activeTab} onChange={setActiveTab} />

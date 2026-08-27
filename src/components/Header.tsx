@@ -6,9 +6,10 @@ import { formatDate, getGreeting } from "@/lib/utils";
 
 type HeaderProps = {
   onOpenHistory?: () => void;
+  streakDays?: number;
 };
 
-export function Header({ onOpenHistory }: HeaderProps) {
+export function Header({ onOpenHistory, streakDays }: HeaderProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { data: session } = useSession();
 
@@ -39,7 +40,11 @@ export function Header({ onOpenHistory }: HeaderProps) {
         <h1 className="mt-1 text-2xl font-bold tracking-tight">
           {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
         </h1>
-        <p className="mt-1 text-sm text-muted">Organize seu dia com foco</p>
+        <p className="mt-1 text-sm text-muted">
+          {streakDays !== undefined && streakDays >= 2
+            ? `🔥 ${streakDays} dias seguidos de foco`
+            : "Organize seu dia com foco"}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 mt-1">

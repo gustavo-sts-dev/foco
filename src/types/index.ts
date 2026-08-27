@@ -16,6 +16,7 @@ export type AppData = {
   tasks: Task[];
   focusMinutesToday: number;
   lastActiveDate: string;
+  dailyMinutes: Record<string, number>;
 };
 
 export const FOCUS_DURATION = 25;

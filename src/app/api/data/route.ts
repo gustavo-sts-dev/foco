@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { shiftDate } from "@/lib/insights";
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
+
+// Janela de histórico devolvida ao cliente. focusStreak para no primeiro dia
+// sem foco, então buscar a vida inteira do usuário seria desperdício que só
+// cresce. O campo `date` é "YYYY-MM-DD", cuja ordem lexicográfica é cronológica.
+const HISTORY_WINDOW_DAYS = 90;
 
 // GET /api/data — returns all tasks + daily stats for logged user
 export async function GET() {
@@ -15,18 +21,27 @@ export async function GET() {
   const userId = session.user.id;
   const today = getTodayKey();
 
-  const [tasks, dailyStat] = await Promise.all([
+  const [tasks, dailyStats] = await Promise.all([
     prisma.task.findMany({
       where: { userId },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     }),
-    prisma.dailyStats.findUnique({ where: { userId_date: { userId, date: today } } }),
+    prisma.dailyStats.findMany({
+      where: { userId, date: { gte: shiftDate(today, -HISTORY_WINDOW_DAYS) } },
+    }),
   ]);
 
+  const dailyMinutes: Record<string, number> = {};
+  for (const stat of dailyStats) {
+    dailyMinutes[stat.date] = stat.focusMinutes;
+  }
+
+  // A janela sempre inclui hoje, então não precisa de uma consulta só para ele
   return NextResponse.json({
     tasks,
-    focusMinutesToday: dailyStat?.focusMinutes ?? 0,
+    focusMinutesToday: dailyMinutes[today] ?? 0,
     lastActiveDate: today,
+    dailyMinutes,
   });
 }
 
@@ -37,10 +52,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
-  const today = getTodayKey();
+  const serverToday = getTodayKey();
   const body = await req.json();
 
-  const { tasks, focusMinutesToday } = body as {
+  const { tasks, focusMinutesToday, date } = body as {
     tasks: Array<{
       id: string;
       title: string;
@@ -52,7 +67,17 @@ export async function POST(req: NextRequest) {
       order?: number;
     }>;
     focusMinutesToday: number;
+    date?: string;
   };
+
+  // `date` vem do cliente e reflete o dia local do usuário (o servidor só
+  // conhece UTC). É chave de banco vinda de fora, então validamos o formato
+  // antes de confiar nela; qualquer coisa fora do padrão cai de volta no dia
+  // UTC do servidor.
+  const today =
+    typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : serverToday;
 
   // Upsert each task
   await Promise.all(

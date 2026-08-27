@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppData } from "@/types";
-import { resetDailyStats } from "@/lib/utils";
+import { getTodayKey, resetDailyStats } from "@/lib/utils";
 
 const defaultData: AppData = {
   tasks: [],
   focusMinutesToday: 0,
-  lastActiveDate: new Date().toISOString().slice(0, 10),
+  lastActiveDate: getTodayKey(),
+  dailyMinutes: {},
 };
 
 export function useAppData() {
@@ -23,7 +24,25 @@ export function useAppData() {
         return res.json();
       })
       .then((json) => {
-        setData(resetDailyStats(json as AppData));
+        const loadedData = json as AppData;
+        // O servidor calcula lastActiveDate/focusMinutesToday com o dia UTC
+        // dele, que diverge do dia local do usuário entre 21h e meia-noite
+        // no Brasil. Só o navegador conhece o fuso do usuário, então
+        // ignoramos esses dois campos vindos da API e os derivamos aqui a
+        // partir do mapa dailyMinutes (que é fuso-agnóstico: é só um
+        // histórico por chave "YYYY-MM-DD"). Payloads salvos antes da
+        // introdução de dailyMinutes não trazem o campo — trata como mapa
+        // vazio para não quebrar o resto do fluxo.
+        const todayKey = getTodayKey();
+        const dailyMinutes = loadedData.dailyMinutes ?? {};
+        setData(
+          resetDailyStats({
+            ...loadedData,
+            dailyMinutes,
+            focusMinutesToday: dailyMinutes[todayKey] ?? 0,
+            lastActiveDate: todayKey,
+          })
+        );
       })
       .catch(() => {
         setData(defaultData);
@@ -43,6 +62,7 @@ export function useAppData() {
         body: JSON.stringify({
           tasks: data.tasks,
           focusMinutesToday: data.focusMinutesToday,
+          date: data.lastActiveDate,
         }),
       }).catch(() => {
         // Silently fail — data is still in memory

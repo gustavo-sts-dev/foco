@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FocusRankChart } from "./FocusRankChart";
+import { describeEstimateAccuracy, estimateAccuracy, shiftDate } from "@/lib/insights";
+import { getTaskDate, getTodayKey } from "@/lib/utils";
 import type { Task } from "@/types";
 
 type Props = {
@@ -21,15 +23,10 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
   if (!isOpen || !mounted) return null;
 
   // Aggregate tasks from the last 7 days
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(today.getDate() - 7);
-  const cutoffDate = sevenDaysAgo.toISOString().slice(0, 10);
+  const cutoffDate = shiftDate(getTodayKey(), -7);
 
   const recentTasks = tasks.filter((t) => {
-    const taskDate = t.date || t.createdAt.slice(0, 10);
-    return taskDate >= cutoffDate;
+    return getTaskDate(t) >= cutoffDate;
   });
 
   const aggregated = recentTasks.reduce((acc, task) => {
@@ -48,6 +45,10 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
 
   const chartData = Object.values(aggregated) as Task[];
 
+  const accuracyMessage = describeEstimateAccuracy(
+    estimateAccuracy(recentTasks)
+  );
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
       <div
@@ -60,6 +61,9 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Histórico (Últimos 7 dias)</h2>
             <p className="text-sm text-muted">Tempo total focado por tarefa</p>
+            {accuracyMessage && (
+              <p className="mt-1 text-xs text-muted">{accuracyMessage}</p>
+            )}
           </div>
           <button
             onClick={onClose}
