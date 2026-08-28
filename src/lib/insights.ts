@@ -1,4 +1,5 @@
 import type { Task } from "@/types";
+import { getTaskDate } from "@/lib/utils";
 
 export function remainingPlannedMinutes(tasks: Task[]): number {
   return tasks
@@ -91,4 +92,35 @@ export function focusStreak(
   }
 
   return streak;
+}
+
+export type DayBucket = {
+  date: string; // "YYYY-MM-DD"
+  tasks: Task[];
+  focusedMinutes: number; // soma de focusedMinutes das tasks do dia
+  completedCount: number; // quantas estão completed
+};
+
+// Janela fechada de 7 dias terminando em `today`, do mais antigo para o mais
+// recente. Dias sem tarefa nenhuma continuam aparecendo, zerados, para que o
+// calendário sempre mostre exatamente 7 colunas.
+export function lastSevenDays(tasks: Task[], today: string): DayBucket[] {
+  const dates = Array.from({ length: 7 }, (_, i) =>
+    shiftDate(today, i - 6)
+  );
+
+  const buckets = new Map<string, DayBucket>(
+    dates.map((date) => [date, { date, tasks: [], focusedMinutes: 0, completedCount: 0 }])
+  );
+
+  for (const task of tasks) {
+    const bucket = buckets.get(getTaskDate(task));
+    if (!bucket) continue; // fora da janela de 7 dias
+
+    bucket.tasks.push(task);
+    bucket.focusedMinutes += task.focusedMinutes ?? 0;
+    if (task.completed) bucket.completedCount += 1;
+  }
+
+  return dates.map((date) => buckets.get(date)!);
 }

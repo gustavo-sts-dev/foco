@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FocusRankChart } from "./FocusRankChart";
-import { describeEstimateAccuracy, estimateAccuracy, shiftDate } from "@/lib/insights";
+import { WeekCalendar } from "./WeekCalendar";
+import {
+  describeEstimateAccuracy,
+  estimateAccuracy,
+  lastSevenDays,
+  shiftDate,
+} from "@/lib/insights";
 import { getTaskDate, getTodayKey } from "@/lib/utils";
 import type { Task } from "@/types";
 
@@ -22,8 +28,11 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
 
   if (!isOpen || !mounted) return null;
 
+  const todayKey = getTodayKey();
+  const weekBuckets = lastSevenDays(tasks, todayKey);
+
   // Aggregate tasks from the last 7 days
-  const cutoffDate = shiftDate(getTodayKey(), -7);
+  const cutoffDate = shiftDate(todayKey, -6);
 
   const recentTasks = tasks.filter((t) => {
     return getTaskDate(t) >= cutoffDate;
@@ -50,13 +59,13 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-0">
       <div
         className="fixed inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      <div className="relative w-full max-w-lg overflow-hidden rounded-[var(--radius-lg)] bg-card shadow-lg animate-in fade-in zoom-in-95 p-6">
+      <div className="relative w-full max-w-lg max-h-[85dvh] overflow-y-auto rounded-[var(--radius-lg)] bg-card shadow-lg animate-in fade-in zoom-in-95 p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Histórico (Últimos 7 dias)</h2>
@@ -76,7 +85,9 @@ export function HistoryModal({ isOpen, onClose, tasks }: Props) {
           </button>
         </div>
 
-        <div>
+        <WeekCalendar days={weekBuckets} today={todayKey} />
+
+        <div className="mt-4 border-t border-border pt-4">
           {chartData.length > 0 ? (
             <FocusRankChart tasks={chartData} hideContainer />
           ) : (

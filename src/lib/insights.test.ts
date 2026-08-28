@@ -6,6 +6,7 @@ import {
   describeEstimateAccuracy,
   estimateAccuracy,
   focusStreak,
+  lastSevenDays,
   MIN_ESTIMATE_SAMPLE,
   remainingPlannedMinutes,
   shiftDate,
@@ -287,5 +288,90 @@ describe("focusStreak", () => {
       "2024-02-28": 0,
     };
     expect(focusStreak(daily, "2024-03-01")).toBe(2);
+  });
+});
+
+describe("lastSevenDays", () => {
+  const today = "2026-06-15";
+  const expectedDates = [
+    "2026-06-09",
+    "2026-06-10",
+    "2026-06-11",
+    "2026-06-12",
+    "2026-06-13",
+    "2026-06-14",
+    "2026-06-15",
+  ];
+
+  it("returns exactly 7 zeroed buckets with the right dates for an empty list", () => {
+    const buckets = lastSevenDays([], today);
+    expect(buckets).toHaveLength(7);
+    expect(buckets.map((b) => b.date)).toEqual(expectedDates);
+    for (const bucket of buckets) {
+      expect(bucket.tasks).toEqual([]);
+      expect(bucket.focusedMinutes).toBe(0);
+      expect(bucket.completedCount).toBe(0);
+    }
+  });
+
+  it("ignores a task outside the 7-day window", () => {
+    const outside = makeTask({
+      id: "outside",
+      date: "2026-06-01",
+      minutes: 10,
+      focusedMinutes: 10,
+    });
+    const buckets = lastSevenDays([outside], today);
+    const allTasks = buckets.flatMap((b) => b.tasks);
+    expect(allTasks).toEqual([]);
+  });
+
+  it("includes a task exactly on the old boundary (today - 6)", () => {
+    const boundary = makeTask({ id: "boundary", date: "2026-06-09", minutes: 15 });
+    const buckets = lastSevenDays([boundary], today);
+    const bucket = buckets.find((b) => b.date === "2026-06-09")!;
+    expect(bucket.tasks).toEqual([boundary]);
+  });
+
+  it("excludes a task one day before the old boundary (today - 7)", () => {
+    const tooOld = makeTask({ id: "too-old", date: "2026-06-08", minutes: 15 });
+    const buckets = lastSevenDays([tooOld], today);
+    const allTasks = buckets.flatMap((b) => b.tasks);
+    expect(allTasks).toEqual([]);
+  });
+
+  it("sums focusedMinutes and counts completed tasks for the same day", () => {
+    const tasks = [
+      makeTask({ id: "a", date: "2026-06-12", minutes: 30, focusedMinutes: 20, completed: true }),
+      makeTask({ id: "b", date: "2026-06-12", minutes: 10, focusedMinutes: 5, completed: false }),
+      makeTask({ id: "c", date: "2026-06-12", minutes: 20, completed: true }), // focusedMinutes ausente conta como 0
+    ];
+    const buckets = lastSevenDays(tasks, today);
+    const bucket = buckets.find((b) => b.date === "2026-06-12")!;
+    expect(bucket.tasks).toHaveLength(3);
+    expect(bucket.focusedMinutes).toBe(25);
+    expect(bucket.completedCount).toBe(2);
+  });
+
+  it("returns buckets in ascending order, oldest to most recent", () => {
+    const buckets = lastSevenDays([], today);
+    expect(buckets.map((b) => b.date)).toEqual([...expectedDates].sort());
+  });
+
+  it("handles a month boundary (today = 2026-03-02)", () => {
+    const monthToday = "2026-03-02";
+    const expected = [
+      "2026-02-24",
+      "2026-02-25",
+      "2026-02-26",
+      "2026-02-27",
+      "2026-02-28",
+      "2026-03-01",
+      "2026-03-02",
+    ];
+    const task = makeTask({ id: "feb", date: "2026-02-24", minutes: 5, focusedMinutes: 5 });
+    const buckets = lastSevenDays([task], monthToday);
+    expect(buckets.map((b) => b.date)).toEqual(expected);
+    expect(buckets[0].tasks).toEqual([task]);
   });
 });
