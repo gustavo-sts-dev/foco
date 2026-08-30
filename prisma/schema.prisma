@@ -19,6 +19,8 @@ model User {
 
   tasks        Task[]
   dailyStats   DailyStats[]
+  noteFolders  NoteFolder[]
+  notes        Note[]
 
   // NextAuth required fields
   sessions     Session[]
@@ -73,4 +75,39 @@ model DailyStats {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+}
+
+// Pastas de notas. Arvore por auto-relacao: parentId nulo = raiz.
+// O limite de MAX_SUBFOLDERS filhas por pasta e regra de aplicacao
+// (validada na API), nao ha como expressa-la no schema.
+model NoteFolder {
+  id        String       @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    NoteFolder?  @relation("NoteFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  NoteFolder[] @relation("NoteFolderTree")
+  notes     Note[]
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, parentId])
+}
+
+model Note {
+  id        String      @id @default(cuid())
+  title     String      @default("")
+  content   String      @default("")
+  folderId  String?
+  folder    NoteFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  pinned    Boolean     @default(false)
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, folderId])
 }

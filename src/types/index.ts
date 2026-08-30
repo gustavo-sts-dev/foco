@@ -10,7 +10,34 @@ export type Task = {
 
 export type TimerMode = "focus" | "break";
 
-export type TabType = "foco" | "cronometro" | "agenda";
+export type TabType = "foco" | "cronometro" | "agenda" | "notas";
+
+/** Pasta de notas. parentId nulo = pasta na raiz. */
+export type NoteFolder = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Nota em markdown. folderId nulo = nota solta na raiz. */
+export type Note = {
+  id: string;
+  title: string;
+  content: string;
+  folderId: string | null;
+  pinned: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NotesData = {
+  folders: NoteFolder[];
+  notes: Note[];
+};
 
 export type AppData = {
   tasks: Task[];

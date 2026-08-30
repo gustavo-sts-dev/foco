@@ -9,6 +9,7 @@ import { TaskList } from "@/components/TaskList";
 import { TabNavigation, TabNavigationDesktop } from "@/components/TabNavigation";
 import { Stopwatch } from "@/components/Stopwatch";
 import { Agenda } from "@/components/Agenda";
+import { Notes } from "@/components/Notes";
 import { HistoryModal } from "@/components/HistoryModal";
 import { useAppData } from "@/hooks/useAppData";
 import { createId, getTaskDate, getTodayKey } from "@/lib/utils";
@@ -273,6 +274,11 @@ export default function Home() {
             onEditTask={handleEditTask}
             recentTaskNames={recentTaskNames}
           />
+        </div>
+
+        {/* Notas Tab */}
+        <div className={activeTab === "notas" ? "block" : "hidden"}>
+          <Notes />
         </div>
       </main>
 
