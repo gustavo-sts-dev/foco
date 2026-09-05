@@ -12,6 +12,9 @@ export type EditorState = {
 };
 
 const ITEM_RE = /^(\s*)([-*+]\s+\[[ xX]\]\s+|[-*+]\s+|\d+[.)]\s+)(.*)$/;
+const QUOTE_RE = /^(\s*)(>\s?)(.*)$/;
+/** Marcação de bloco que o Backspace desfaz quando o cursor está logo depois dela. */
+const MARKUP_RE = /^(\s*)([-*+] \[[ xX]\] |[-*+] |\d+[.)] |> )$/;
 
 function lineBounds(text: string, start: number, end: number) {
   const from = text.lastIndexOf("\n", start - 1) + 1;
@@ -164,4 +167,77 @@ export function continueList(state: EditorState): EditorState | null {
     start: start + insertion.length,
     end: start + insertion.length,
   };
+}
+
+/**
+ * Enter dentro de uma citação continua a citação; Enter numa citação vazia sai
+ * dela. Mesmo contrato de continueList.
+ */
+export function continueQuote(state: EditorState): EditorState | null {
+  const { text, start, end } = state;
+  if (start !== end) return null;
+
+  const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+  const line = text.slice(lineStart, start);
+  const match = line.match(QUOTE_RE);
+  if (!match) return null;
+
+  const [, indent, marker, content] = match;
+
+  if (!content.trim()) {
+    return {
+      text: text.slice(0, lineStart) + text.slice(start),
+      start: lineStart,
+      end: lineStart,
+    };
+  }
+
+  // "> " é o marcador canônico mesmo quando a linha veio com ">" colado.
+  const insertion = "\n" + indent + (marker.endsWith(" ") ? marker : marker + " ");
+  return {
+    text: text.slice(0, start) + insertion + text.slice(start),
+    start: start + insertion.length,
+    end: start + insertion.length,
+  };
+}
+
+/** Enter no editor: continua lista ou citação, o que estiver valendo na linha. */
+export function continueBlock(state: EditorState): EditorState | null {
+  return continueList(state) ?? continueQuote(state);
+}
+
+/**
+ * Backspace logo depois da marcação de um item ("- ", "1. ", "> ", "- [ ] ")
+ * apaga a marcação inteira em vez de uma letra. Um segundo Backspace, agora
+ * sobre a indentação, tira um nível de recuo. Devolve null quando a tecla deve
+ * seguir o caminho normal.
+ */
+export function deleteMarkupBackward(state: EditorState): EditorState | null {
+  const { text, start, end } = state;
+  if (start !== end || start === 0) return null;
+
+  const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+  const before = text.slice(lineStart, start);
+
+  const markup = before.match(MARKUP_RE);
+  if (markup) {
+    const keep = markup[1];
+    return {
+      text: text.slice(0, lineStart) + keep + text.slice(start),
+      start: lineStart + keep.length,
+      end: lineStart + keep.length,
+    };
+  }
+
+  // Só espaços entre o começo da linha e o cursor: recua um nível.
+  if (before.length > 0 && /^\s+$/.test(before)) {
+    const width = before.endsWith("\t") ? 1 : Math.min(2, before.length);
+    return {
+      text: text.slice(0, start - width) + text.slice(start),
+      start: start - width,
+      end: start - width,
+    };
+  }
+
+  return null;
 }

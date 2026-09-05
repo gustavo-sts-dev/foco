@@ -23,7 +23,7 @@ export function escapeHtml(text: string): string {
 // Só http(s), mailto e tel viram href. Qualquer outra coisa (javascript:,
 // data:, vbscript:) perde o link e vira texto. Caminhos relativos e âncoras
 // também passam, por serem inofensivos.
-function safeUrl(url: string): string | null {
+export function safeUrl(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
   if (/^(https?:\/\/|mailto:|tel:|#|\/|\.\/|\.\.\/)/i.test(trimmed)) return trimmed;

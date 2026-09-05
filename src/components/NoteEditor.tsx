@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+import type { EditorView } from "@codemirror/view";
 
 import { BottomSheet, SheetAction } from "@/components/BottomSheet";
 import { FolderPicker } from "@/components/FolderPicker";
-import { MarkdownView } from "@/components/MarkdownView";
+import { LiveMarkdownEditor } from "@/components/LiveMarkdownEditor";
 import {
   BoldIcon,
   ChecklistIcon,
@@ -23,14 +25,7 @@ import {
   QuoteIcon,
   TrashIcon,
 } from "@/components/NoteIcons";
-import {
-  type EditorState,
-  continueList,
-  insertCodeBlock,
-  insertLink,
-  toggleLinePrefix,
-  wrapSelection,
-} from "@/lib/markdownEditor";
+import { markdownActions } from "@/lib/livePreview";
 import { downloadMarkdown, printNotesAsPdf } from "@/lib/notePdf";
 import { folderPath, noteTitle, slugifyFileName } from "@/lib/notes";
 import type { Note, NoteFolder } from "@/types";
@@ -46,6 +41,8 @@ type NoteEditorProps = {
   onDelete: () => void;
 };
 
+const PLACEHOLDER = "Escreva em markdown… o texto se formata sozinho.";
+
 export function NoteEditor({
   note,
   folders,
@@ -55,22 +52,20 @@ export function NoteEditor({
   onDelete,
 }: NoteEditorProps) {
   const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState<"write" | "preview">("write");
   const [menuOpen, setMenuOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorView = useRef<EditorView | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
-  // Posição do cursor a restaurar depois que o React repintar o textarea.
-  const pendingSelection = useRef<[number, number] | null>(null);
+  const isNew = !note.title && !note.content;
 
   useEffect(() => setMounted(true), []);
 
   // Nota recém-criada abre com o cursor no título e o teclado já em cima.
   useEffect(() => {
-    if (!note.title && !note.content) titleRef.current?.focus();
+    if (isNew) titleRef.current?.focus();
     // Só na abertura: refocar a cada tecla digitada seria um pesadelo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
@@ -94,40 +89,12 @@ export function NoteEditor({
     };
   }, []);
 
-  useLayoutEffect(() => {
-    const selection = pendingSelection.current;
-    const element = textareaRef.current;
-    if (!selection || !element) return;
-    pendingSelection.current = null;
-    element.focus();
-    element.setSelectionRange(selection[0], selection[1]);
-  });
-
-  function apply(transform: (state: EditorState) => EditorState | null) {
-    const element = textareaRef.current;
-    if (!element) return;
-    const result = transform({
-      text: element.value,
-      start: element.selectionStart,
-      end: element.selectionEnd,
-    });
-    if (!result) return;
-    pendingSelection.current = [result.start, result.end];
-    onChange({ content: result.text });
-  }
-
-  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key !== "Enter" || event.shiftKey) return;
-    const element = event.currentTarget;
-    const result = continueList({
-      text: element.value,
-      start: element.selectionStart,
-      end: element.selectionEnd,
-    });
-    if (!result) return;
-    event.preventDefault();
-    pendingSelection.current = [result.start, result.end];
-    onChange({ content: result.text });
+  /** Roda um comando da barra sobre o editor, sem tirar o foco dele. */
+  function run(action: (view: EditorView) => boolean) {
+    const view = editorView.current;
+    if (!view) return;
+    if (!view.hasFocus) view.focus();
+    action(view);
   }
 
   const path = folderPath(folders, note.folderId);
@@ -164,27 +131,6 @@ export function NoteEditor({
           </p>
         </div>
 
-        <div className="flex shrink-0 rounded-full bg-muted-bg p-0.5">
-          <button
-            type="button"
-            onClick={() => setMode("write")}
-            className={`min-h-9 rounded-full px-3 text-sm font-medium transition-colors ${
-              mode === "write" ? "bg-card text-foreground shadow-[var(--shadow)]" : "text-muted"
-            }`}
-          >
-            Escrever
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("preview")}
-            className={`min-h-9 rounded-full px-3 text-sm font-medium transition-colors ${
-              mode === "preview" ? "bg-card text-foreground shadow-[var(--shadow)]" : "text-muted"
-            }`}
-          >
-            Ver
-          </button>
-        </div>
-
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
@@ -205,58 +151,46 @@ export function NoteEditor({
           className="shrink-0 border-none bg-transparent px-4 pt-4 pb-2 text-xl font-semibold tracking-tight outline-none placeholder:text-muted/60"
         />
 
-        {mode === "write" ? (
-          <textarea
-            ref={textareaRef}
-            value={note.content}
-            onChange={(event) => onChange({ content: event.target.value })}
-            onKeyDown={handleKeyDown}
-            placeholder={"Escreva em markdown…\n\n# Título\n- [ ] tarefa\n**negrito**"}
-            spellCheck
-            className="min-h-0 flex-1 resize-none border-none bg-transparent px-4 pb-4 text-base leading-relaxed outline-none placeholder:text-muted/50"
-          />
-        ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
-            <MarkdownView content={note.content} emptyMessage="Escreva algo para ver aqui." />
-          </div>
-        )}
+        <LiveMarkdownEditor
+          docKey={note.id}
+          value={note.content}
+          onChange={(content) => onChange({ content })}
+          placeholder={PLACEHOLDER}
+          autoFocus={!isNew}
+          viewRef={editorView}
+        />
       </div>
 
-      {mode === "write" && (
-        <div className="shrink-0 border-t border-border bg-card">
-          {/* Barra rolável: cabe em telas estreitas sem espremer os botões. */}
-          <div className="flex gap-1 overflow-x-auto px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <ToolButton label="Título" onClick={() => apply((s) => toggleLinePrefix(s, "## "))}>
-              <HeadingIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Negrito" onClick={() => apply((s) => wrapSelection(s, "**", "negrito"))}>
-              <BoldIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Itálico" onClick={() => apply((s) => wrapSelection(s, "*", "itálico"))}>
-              <ItalicIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Lista" onClick={() => apply((s) => toggleLinePrefix(s, "- "))}>
-              <ListIcon size={19} />
-            </ToolButton>
-            <ToolButton
-              label="Checklist"
-              onClick={() => apply((s) => toggleLinePrefix(s, "- [ ] "))}
-            >
-              <ChecklistIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Citação" onClick={() => apply((s) => toggleLinePrefix(s, "> "))}>
-              <QuoteIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Código" onClick={() => apply(insertCodeBlock)}>
-              <CodeIcon size={19} />
-            </ToolButton>
-            <ToolButton label="Link" onClick={() => apply((s) => insertLink(s))}>
-              <LinkIcon size={19} />
-            </ToolButton>
-          </div>
-          {keyboardInset === 0 && <div className="pb-safe" />}
+      <div className="shrink-0 border-t border-border bg-card">
+        {/* Barra rolável: cabe em telas estreitas sem espremer os botões. */}
+        <div className="flex gap-1 overflow-x-auto px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ToolButton label="Título" onClick={() => run(markdownActions.heading)}>
+            <HeadingIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Negrito" onClick={() => run(markdownActions.bold)}>
+            <BoldIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Itálico" onClick={() => run(markdownActions.italic)}>
+            <ItalicIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Lista" onClick={() => run(markdownActions.list)}>
+            <ListIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Checklist" onClick={() => run(markdownActions.checklist)}>
+            <ChecklistIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Citação" onClick={() => run(markdownActions.quote)}>
+            <QuoteIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Código" onClick={() => run(markdownActions.code)}>
+            <CodeIcon size={19} />
+          </ToolButton>
+          <ToolButton label="Link" onClick={() => run(markdownActions.link)}>
+            <LinkIcon size={19} />
+          </ToolButton>
         </div>
-      )}
+        {keyboardInset === 0 && <div className="pb-safe" />}
+      </div>
 
       <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={title}>
         <div className="flex flex-col gap-0.5">
@@ -355,8 +289,8 @@ function ToolButton({ label, onClick, children }: ToolButtonProps) {
   return (
     <button
       type="button"
-      // onMouseDown/onTouchStart com preventDefault mantém o foco no textarea:
-      // sem isso o teclado do celular fecha a cada toque na barra.
+      // onMouseDown com preventDefault mantém o foco no editor: sem isso o
+      // teclado do celular fecha a cada toque na barra.
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       aria-label={label}
