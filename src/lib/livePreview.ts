@@ -592,9 +592,10 @@ const editorTheme = EditorView.theme({
     overflowY: "auto",
     overflowX: "hidden",
   },
+  // O recuo horizontal fica no content, não em .cm-line: assim as decorações
+  // de linha (citação, código, título) mandam no padding sem brigar com o tema.
   // A folga embaixo deixa a última linha subir acima do teclado do celular.
-  ".cm-content": { padding: "0.25rem 0 8rem", caretColor: "var(--accent)" },
-  ".cm-line": { padding: "0 1rem" },
+  ".cm-content": { padding: "0.25rem 1rem 8rem", caretColor: "var(--accent)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)", borderLeftWidth: "2px" },
   ".cm-selectionBackground, ::selection": { backgroundColor: "var(--accent-muted)" },
   ".cm-placeholder": { color: "var(--muted)", opacity: "0.7" },
